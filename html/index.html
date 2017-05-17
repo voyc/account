@@ -1,50 +1,428 @@
 <!doctype html>
 <html>
-	<head>
-		<meta http-equiv=Content-Type content='text/html; charset=UTF-8'>
-		<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1'>
-		<title>svctest</title>
+<head>
+<meta http-equiv=Content-Type content='text/html; charset=UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1'>
+<title>account</title>
+<style>
+* {
+	font-family: calibri;
+}
+h1 {
+	margin:0px;
+	font-size:1em;
+}
+.sub {
+	width:100%;
+}
+#dialogframe {
+	text-align:center;
+	background-color:white;
+	border:1px solid black;
+	box-shadow: 10px 10px 5px #888888;
+}
+.centered {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%,-50%);
+}
+#dialogform {
+	display:inline-block;
+	text-align:left;
+	padding:1rem 2rem 1rem 1rem;
+	width:15rem;
+}
+.block {
+	border:1px solid gray;
+	padding:1rem;
+	border-radius:4px;
+	max-width:10rem;
+	width:10rem;
+	height:9rem;
+	overflow-x:scroll;
+	overflow-y:scroll;
+	vertical-align:top;
+	text-align:left;
+}
+.line {
+	white-space:nowrap;
+	display:block;
+	text-align:right;
+	margin-top:.1rem;
+}
+.line#line_submit {
+	text-align:center;
+	margin-top:.5rem;
+}
+input:read-only {
+	background-color:#ccc;
+}
+.hidden {
+	display:none !important;
+}
+#fields {
+	text-align:right;
+	padding-right:2rem;
+}
+p {
+	margin:0px 0px 0px 12px;
+}
+input[type='text'] {
+	margin:.2rem 0rem;
+}
+input[type='radio'] {
+	margin:6px 4px;
+}
+.red {
+	color:red;
+}
+.copybtn {
+	margin-right:5px;
+}
+#changepassword p {
+	margin:6px 12px;
+}
+button.anchor {
+	/* remove button styles */
+	background: none;
+	border: none;
+	display: inline;
+	font: inherit;
+	margin: 0;
+	padding: 0;
+	outline: none;
+	outline-offset: 0;
+	/* add anchor styles */
+	color: blue;
+	cursor: pointer;
+	text-decoration: underline;
+	/* add layout styles */
+	margin:4px 2px;
+}
+button.anchor[disabled] {
+	color:gray;
+	text-decoration: none;
+}
 
-		<link href='css/svctest.css' rel='stylesheet' type='text/css'></link>
-		<script src='js/svctest.js'></script>
-		<script src='js/comm.js'></script>
-		<script src='jslib/utils.js'></script>
-	</head>
-	<body>
-		<h1>svctest</h1>
-		<table>
+</style>		
+<script>
+var screenstate = 0; //ready, inputting, submitted, returned
+
+var si = '';
+var auth = 0;
+var uname = '';
+var url = '/svc/';
+if (window.location.origin == 'file://') {
+	url = 'http://account.hagstrand.com/svc/';	// local testing
+}
+$ = function(e) { return document.getElementById(e);} 
+var svcdef = {};
+svcdef.inputs = {
+	register:		{uname:1, email:1, both:0, pword:1, pnew:0, tic:0, si:0 },
+	verify:			{uname:0, email:0, both:0, pword:1, pnew:0, tic:1, si:1 },
+	login:			{uname:0, email:0, both:1, pword:1, pnew:0, tic:0, si:0 },
+	relogin:		{uname:0, email:0, both:0, pword:0, pnew:0, tic:0, si:1 },
+	logout:			{uname:0, email:0, both:0, pword:0, pnew:0, tic:0, si:1 },
+	forgotpassword:	{uname:0, email:0, both:1, pword:0, pnew:0, tic:0, si:0 },
+	resetpassword:	{uname:0, email:0, both:0, pword:0, pnew:1, tic:1, si:1 },
+	changepassword:	{uname:0, email:0, both:0, pword:1, pnew:1, tic:0, si:1 },
+	changeusername:	{uname:1, email:0, both:0, pword:1, pnew:0, tic:0, si:1 },
+	changeemail:	{uname:0, email:1, both:0, pword:1, pnew:0, tic:0, si:1 },
+	verifyemail:	{uname:0, email:0, both:0, pword:1, pnew:0, tic:1, si:1 },
+}
+svcdef.outputs = {
+	register:		{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	verify:			{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	login:			{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	relogin:		{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	logout:			{status:1, si:1, auth:1, access:1, uname:1, email:0 },
+	forgotpassword:	{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	resetpassword:	{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	changepassword:	{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+	changeusername:	{status:1, si:0, auth:0, access:0, uname:1, email:0 },
+	changeemail:	{status:1, si:0, auth:1, access:0, uname:0, email:0 },
+	verifyemail:	{status:1, si:0, auth:0, access:0, uname:0, email:0 },
+}
+svcdef.inputdef = {
+	uname:	{type:'text', display:'username'         , pattern:'[a-zA-Z0-9_@.+]{6,100}'      },
+	email:	{type:'text', display:'email'            , pattern:'[a-zA-Z0-9_@.+]{6,100}'      },
+	both:	{type:'text', display:'username or email', pattern:'[a-zA-Z0-9@&amp;#$%]{8,255}' },
+	pword:	{type:'text', display:'password'         , pattern:'[a-zA-Z0-9@&amp;#$%]{8,255}' },
+	pnew:	{type:'text', display:'new password'     , pattern:'[a-zA-Z0-9@&amp;#$%]{8,255}' },
+	tic:	{type:'text', display:'temporary id code', pattern:'[a-zA-Z0-9]{6}'              },
+	si:		{type:'text', display:'session-id'       , pattern:''                            },
+}
+svcdef.authdef = {
+	0: 'anonymous'   ,
+	1: 'registered'  ,
+	2: 'resetpending',
+	7: 'verified'    ,  // auth >= verified vs auth < verified
+	8: 'emailpending',
+}
+svcdef.svcbyauth = {
+	'register':       {'anonymous':1, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':0 },
+	'verify':         {'anonymous':0, 'registered':1, 'resetpending':0, 'emailpending':0, 'verified':0 },
+	'login':          {'anonymous':1, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':0 },
+	'relogin':        {'anonymous':0, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':1 },
+	'logout':         {'anonymous':0, 'registered':1, 'resetpending':1, 'emailpending':1, 'verified':1 },
+	'forgotpassword': {'anonymous':1, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':0 },
+	'resetpassword':  {'anonymous':0, 'registered':0, 'resetpending':1, 'emailpending':0, 'verified':0 },
+	'changepassword': {'anonymous':0, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':1 },
+	'changeusername': {'anonymous':0, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':1 },
+	'changeemail':    {'anonymous':0, 'registered':0, 'resetpending':0, 'emailpending':0, 'verified':1 },
+	'verifyemail':    {'anonymous':0, 'registered':0, 'resetpending':0, 'emailpending':1, 'verified':1 },
+}
+
+drawDialog = function() {
+	// draw an input for each field
+	var field,r,p;
+	for (var k in svcdef.inputdef) {
+		field = svcdef.inputdef[k];
+
+		p = document.createElement('div');
+		p.id = 'line_'+k;
+		p.className = 'line';
+		$('dialogform').appendChild(p);
+
+		r = document.createElement('label');
+		r.innerHTML = k + ':&nbsp;';
+		p.appendChild(r);
+
+		r = document.createElement('input');
+		r.type = field.type;
+		r.id = k;
+		r.name = k;
+		r.placeholder = field.display;
+		r.pattern = field.pattern;
+		r.title = field.pattern;
+		r.required = true;
+		p.appendChild(r);
+
+		r = document.createElement('span');
+		r.innerHTML = '&nbsp;*';
+		r.className = 'red';
+		//r.style.visibility = 'hidden';
+		//r.id = k+'req';
+		p.appendChild(r);
+	}
+
+	// add the submit button
+	p = document.createElement('div');
+	p.id = 'line_submit';
+	p.className = 'line';
+	$('dialogform').appendChild(p);
+
+	r = document.createElement('input');
+	p.appendChild(r);
+	r.type = 'submit';
+	r.value = 'Submit';
+	r.id = 'callserver';
+
+	// doctor the si in the form
+	$('si').readOnly = 'true';
+}
+
+attachDomEventHandlers = function() {
+	// attach click handler to each request button
+	var svc,r,f;
+	for (var k in svcdef.inputs) {
+		svc = svcdef.inputs[k];
+		r = $(k);
+		r.addEventListener('click', function(evt) {
+			openDialog(evt.currentTarget.id);
+		});
+	}
+
+	// attach click handler to dialog close button
+	$('closebtn').addEventListener('click', function(evt) {
+		closeDialog();
+	}, false);
+
+	// attach click handler to dialog submit button
+	$('dialogform').addEventListener('submit', function(evt) {
+		evt.preventDefault();
+
+		// move required inputs into postdata object
+		var postdata = {};
+		var postdataText = '';
+		var svcname = $('dialogtitle').innerHTML;
+		var svc = svcdef.inputs[svcname];
+		var f, v;
+		for (var m in svc) {
+			f = svc[m];
+			if (f) {
+				if (svcdef.inputdef[m].type == 'checkbox') {
+					v = ($(m).checked) ? 't' : 'f';
+				}
+				else {
+					v = $(m).value;
+				}
+				postdata[m] = v;
+				postdataText += m + ':' + v + '<br/>';
+			}
+		}
+		postdata['svc'] = svcname;
+		postdataText += 'svc' + ':' + svcname + '<br/>';
+		
+		
+		// display postdata
+		$('postdata').innerHTML = postdataText;
+		$('response').innerHTML = '';
+		
+		// call the service
+		var xhr = new XMLHttpRequest();
+		xhr.onabort = function() { console.log('xhr onabort'); };
+		xhr.onerror = function() { console.log('xhr onerror'); };
+		xhr.ontimeout = function() { console.log('xhr ontimeout'); };
+		xhr.onreadystatechange = function() {
+			//self._callback() 
+			if (xhr.readyState == 4) {
+				console.log('xhr status='+xhr.status);
+				if (!xhr.responseText) { console.log('xhr responseText is empty') };
+				if ((xhr.status == 200 || xhr.status == 0) && xhr.responseText) {
+					var response = JSON.parse(xhr.responseText);
+					$('response').innerHTML = xhr.responseText.replace(/,/g, '<br/>');
+					
+					// process response
+					//if (svcname == 'login') {
+					//	si = response.si || '';
+					//	auth = response.auth || 0;
+					//	uname = response.uname || '';
+					//}
+					//if (svcname == 'logout') {
+					//	si = '';
+					//	auth = '';
+					//	uname = '';
+					//}
+					si = response.si || '';
+					auth = response.auth || 0;
+					uname = response.uname || '';
+					showLoggedIn();
+					
+					enableRequests();
+					returnDialog();
+				}
+			}
+		};
+		xhr.open('post', url, true);
+		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		var strdata = http_build_query(postdata);
+		xhr.send(strdata);
+		console.log('request sent');
+		postDialog();
+	}, false);
+}
+
+showLoggedIn = function() {
+	$('si').value = si;
+	$('login_si').innerHTML = si.substr(0, 10) + '...' + si.substr(si.length-10,si.length);
+	$('login_auth').innerHTML = auth + ' - ' + svcdef.authdef[auth];
+	$('login_uname').innerHTML = uname;
+}
+
+enableRequests = function() {
+	for (var k in svcdef.svcbyauth) {
+		var sauth = svcdef.authdef[auth];
+		var isAllowed = svcdef.svcbyauth[k][sauth];
+		$(k).disabled = (isAllowed) ? false : true;
+	}
+};
+
+openDialog = function(svcname) {
+	// show/hide dialog fields per svc
+	$('dialogtitle').innerHTML = svcname;
+	//var svc = svcdef.inputs[svcname];
+	//for (var m in svc) {
+	//	var f = svc[m];
+	//	if (f == 0) {
+	//		$('line_'+m).classList.add('hidden');
+	//		$(m).required = false;
+	//	}
+	//	else if (f == 1) {
+	//		$('line_'+m).classList.remove('hidden');
+	//		$(m).required = true;
+	//	}
+	//}
+	$('dialogframe').classList.remove('hidden');
+	$('dialogform').classList.remove('hidden');
+	$('dialogpost').classList.add('hidden');
+}
+postDialog = function(svcname) {
+	$('poststate').innerHTML = 'waiting...';
+	$('dialogform').classList.add('hidden');
+	$('dialogpost').classList.remove('hidden');
+}
+returnDialog = function(svcname) {
+	$('poststate').innerHTML = 'complete';
+}
+closeDialog = function(svcname) {
+	$('dialogframe').classList.add('hidden');
+	$('dialogform').classList.add('hidden');
+	$('dialogpost').classList.add('hidden');
+}
+
+window.addEventListener('load', function() {
+	// initialize the UI
+	//drawScreen();
+	drawDialog();
+	attachDomEventHandlers();
+	showLoggedIn();
+	enableRequests();
+}, false);
+
+// Compose a query string from a javascript object.  Will be undone by php parse_str().
+http_build_query = function(params) {
+	var s = '';
+	var a = '';
+	for (i in params) {
+		s += i + '=' + encodeURIComponent(params[i]) + '&';
+	}
+	return s;
+}
+
+</script>		
+<body>
+	<h1>account</h1>
+	<p>si: <span id='login_si'></span></p>
+	<p>auth: <span id='login_auth'></span></p>
+	<p>uname: <span id='login_uname'></span></p>
+	<div id='dialogframe' class='centered hidden'>
+		<h1 id='dialogtitle'>dialog</h1>
+		<form id='dialogform' class='hidden'></form>
+		<table id='dialogpost' class='sub hidden'>
 			<tr>
-				<td class='toprow'>
-					<table class='sub'>
-						<tr>
-							<td id='fields' ></td>
-							<td id='svcs'   ></td>
-						</tr>
-					</table>
+				<td colspan=2>
+					<span id='poststate'></span>
+					<button class='anchor' id='closebtn'>close</button>
 				</td>
 			</tr>
 			<tr>
-				<td class='bottomrow'>
-					<table class='sub'>
-						<tr>
-							<td class='block'>
-								<b>postdata= {</b>
-								<p id='postdata'></p>
-								<b>}</b>
-							</td>
-							<td id='gobtn'>
-								<input type='button' id='callserver' value='Submit' />
-								<div id='ok'></div>
-							</td>
-							<td class='block'>
-								<b>response= {</b>
-								<p id='response'></p>
-								<b>}</b>
-							</td>
-						</tr>
-					</table>
+				<td class='block'>
+					<b>postdata= {</b>
+					<p id='postdata'></p>
+					<b>}</b>
+				</td>
+				<td class='block'>
+					<b>response= {</b>
+					<p id='response'></p>
+					<b>}</b>
 				</td>
 			</tr>
 		</table>
-	</body>
+	</div>
+	<table id=svctable border=1 cellspacing=0 cellpadding=4>
+		<tr><td><button class='anchor' id='register'      >Register</button></td><td>User enters username, email, password.  A new account is created for this user with auth=registered, and an email containing a Temporary Identification Code is sent to the user.</td></tr>
+		<tr><td><button class='anchor' id='verify'        >Verify&nbsp;Register</button></td><td>Logged-in-user enters the Temporary Identification Code from the email and his password.  The account is changed to auth=verified.</td></tr>
+		<tr><td><button class='anchor' id='login'         >Login</button></td><td>User enters username or email, and password.  The user is logged-in.</td></tr>
+		<tr><td><button class='anchor' id='relogin'       >Relogin</button></td><td>No user input.  A previously logged-in user is logged-in silently at startup.  Refresh the page to test.</td></tr>
+		<tr><td><button class='anchor' id='logout'        >Logout</button></td><td>No user input.  Logged-in-user is logged out.</td></tr>
+		<tr><td><button class='anchor' id='forgotpassword'>Forgot&nbsp;Password</button></td><td>User enters username or email.  The account is changed to auth=resetpending and an email containing a Temporary Identification Code is sent to the user.</td></tr>
+		<tr><td><button class='anchor' id='resetpassword' >Reset&nbsp;Password</button></td><td>User enters the Temporary Identification Code and new password.  His password is changed.</td></tr>
+		<tr><td><button class='anchor' id='changepassword'>Change&nbsp;Password</button></td><td>Logged-in-user enters old password and new password.  His password is changed.</td></tr>
+		<tr><td><button class='anchor' id='changeusername'>Change&nbsp;Username</button></td><td>Logged-in-user enters new username and password.  His username is changed.</td></tr>
+		<tr><td><button class='anchor' id='changeemail'   >Change&nbsp;Email</button></td><td>Logged-in-user enters new email address.  The account is changed to auth=emailpending and a Temporary Identification Code is sent to the new email address.</td></tr>
+		<tr><td><button class='anchor' id='verifyemail'   >Verify&nbsp;Email</button></td><td>Pending user enters Temporary Identification Code and password and his registration is completed and he is logged in as a new user.</td></tr>
+	</table>
+</body>
 </html>

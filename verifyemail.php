@@ -70,7 +70,7 @@ function verifyemail() {
 	$params = array($auth, $userid);
 	$result = execSql($conn, $name, $sql, $params, true);
 	if (!$result) {
-		return false;
+		return $a;
 	}
 
 	// success
