@@ -332,18 +332,18 @@ enableRequests = function() {
 openDialog = function(svcname) {
 	// show/hide dialog fields per svc
 	$('dialogtitle').innerHTML = svcname;
-	//var svc = svcdef.inputs[svcname];
-	//for (var m in svc) {
-	//	var f = svc[m];
-	//	if (f == 0) {
-	//		$('line_'+m).classList.add('hidden');
-	//		$(m).required = false;
-	//	}
-	//	else if (f == 1) {
-	//		$('line_'+m).classList.remove('hidden');
-	//		$(m).required = true;
-	//	}
-	//}
+	var svc = svcdef.inputs[svcname];
+	for (var m in svc) {
+		var f = svc[m];
+		if (f == 0) {
+			$('line_'+m).classList.add('hidden');
+			$(m).required = false;
+		}
+		else if (f == 1) {
+			$('line_'+m).classList.remove('hidden');
+			$(m).required = true;
+		}
+	}
 	$('dialogframe').classList.remove('hidden');
 	$('dialogform').classList.remove('hidden');
 	$('dialogpost').classList.add('hidden');
