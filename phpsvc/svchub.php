@@ -2,13 +2,13 @@
 /**
 	user authentication svc entry point
 **/
-require_once(dirname(__FILE__).'/../../config.php');
-require_once('../phplib/str.php');
-require_once('../phplib/db.php');
-require_once('../phplib/validate.php');
-require_once('../phplib/crypto.php');
-require_once('../phplib/cors.php');
-require_once('../phplib/log.php');
+require_once(dirname(__FILE__).'/../../../config.php');
+require_once('../../phplib/str.php');
+require_once('../../phplib/db.php');
+require_once('../../phplib/validate.php');
+require_once('../../phplib/crypto.php');
+require_once('../../phplib/cors.php');
+require_once('../../phplib/log.php');
 
 writeHeader();
 
@@ -29,8 +29,7 @@ $supported_svcs = array(
 	'changepassword' ,
 	'changeusername' ,
 	'changeemail'    ,
-	'verifyemail'    ,
-	'stub'           
+	'verifyemail'
 );
 		
 function validateSvc($taint) {
