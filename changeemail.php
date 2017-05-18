@@ -1,10 +1,14 @@
 <?php
+/**
+	svc changeemail
+	Request a different email.
+*/
 function changeemail() {
 	$a = array(
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 	$taint_pword = isset($_POST['pword']) ? $_POST['pword'] : 0;
 	$taint_email = isset($_POST['email']) ? $_POST['email'] : 0;
@@ -32,30 +36,30 @@ function changeemail() {
 		return $a;
 	}
 
-	// get data fields
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-	$id = $row['id'];
-	$dbpw = $row['hashpassword'];
+	$userid = $row['id'];
+	$hashpassword = $row['hashpassword'];
 	$auth = $row['auth'];
 	$oldemail = $row['email'];
 
-	// verify good user
-	if (!isUserVerified($auth)) {
+	// verify auth
+	if (!isUserVerified($auth) && !isUserEmailPending($auth)) {
 		Log::write(LOG_NOTICE, "attempt by non-verified user");
 		return $a;
 	}
 
 	// verify password
-	$boo = verifyPassword($pword, $dbpw);
+	$boo = verifyPassword($pword, $hashpassword);
 	if (!$boo) {
-		Log::write(LOG_NOTICE, "attempt with bad password");
+		Log::write(LOG_NOTICE, "attempt with invalid password");
 		return $a;
 	}
 
-	// validate email is unique
+	// verify email is unique
 	$name = 'test-unique-email';
-	$sql  = "select id from account.user where email = $1 and $id <> $2";
-	$params = array($email, $id);
+	$sql  = "select id from account.user where email = $1 and id <> $2";
+	$params = array($email, $userid);
 	$result = execSql($conn, $name, $sql, $params, false);
 	if (!$result) {
 		return $a;
@@ -70,22 +74,23 @@ function changeemail() {
 	// get TIC
 	$publicTic = generateTic();
 	$hashTic = hashTic($publicTic);
-	
-	$auth = DB::$auth_emailpending;
-
-	// update the user record
-	$name = 'change-user-email';
-	$sql  = "update account.user set newemail = $1, auth=$3, hashtic=$4, tmhashtic=now() where id = $2";
-	$params = array($email, $id, $auth, $hashTic);
-	$result = execSql($conn, $name, $sql, $params, true);
-	if (!$result) {
-		return $a;
-	}
 
 	// send TIC to user by email
 	$boo = sendAuthenticationEmail($email, $publicTic, 'verifyemail');
 	if (!$boo) {
 		$a['status'] = 'send-email-failed';
+		return $a;
+	}
+
+	// set new auth
+	$auth = DB::$auth_emailpending;
+
+	// update user record
+	$name = 'change-user-email';
+	$sql  = "update account.user set newemail = $1, auth=$3, hashtic=$4, tmhashtic=now() where id = $2";
+	$params = array($email, $userid, $auth, $hashTic);
+	$result = execSql($conn, $name, $sql, $params, true);
+	if (!$result) {
 		return $a;
 	}
 

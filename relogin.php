@@ -1,43 +1,51 @@
 <?php
-function relogin() {  // login with session-id
+/**
+	svc relogin
+	Login a previously logged-in user.
+*/
+function relogin() {
 	$a = array(
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 
-	// validated inputs
+	// validate inputs
 	$si = validateToken($taint_si);
 
-	// connect to db
+	// validate parameter set
+	if (!$si) {
+		Log::write(LOG_WARNING, 'attempt with invalid parameter set');
+		return $a;
+	}
+
+	// get db connection
 	$conn = getConnection();
 	if (!$conn) {
 		return $a;
 	}
 
-	// query user table
+	// get logged-in user
 	$result = getUserByToken($conn, $si);
 	if (!$result) {
 		return $a;
 	}
 
-	// get the data
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-	$id = $row['id'];
+	$userid = $row['id'];
 	$uname = $row['username'];
-	$email = $row['email'];
 	$auth = $row['auth'];
 	$access = $row['access'];
-	$dbtoken = $row['token'];
 
-	// verify good user
+	// verify auth
 	if (!isUserVerified($auth)) {
 		Log::write(LOG_NOTICE, "non-verified user has logged in");
 	}
 
 	// write a new session id token
-	$si = writeToken($conn, $id);
+	$si = writeToken($conn, $userid);
 	if (!$si) {
 		return $a;
 	}
@@ -48,7 +56,6 @@ function relogin() {  // login with session-id
 	$a['auth'] = $auth;
 	$a['access'] = $access;
 	$a['uname'] = $uname;
-	//$a['email'] = obscureEmail($email);
 	return $a;
 }
 ?>

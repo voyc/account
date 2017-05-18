@@ -38,7 +38,7 @@ function changepassword() {
 
 	// verify good user
 	if (!isUserVerified($auth)) {
-		Log::write(LOG_NOTICE, "attempt on non-verified user");
+		Log::write(LOG_NOTICE, "attempt by non-verified user");
 		return $a;
 	}
 

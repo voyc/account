@@ -1,14 +1,14 @@
 <?php
-/*
+/**
 	svc forgotpassword
-	User forgot his password, requests reset.
+	Request a new password.
 */
 function forgotpassword() {
 	$a = array(
 		'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_both = isset($_POST['both']) ? $_POST['both'] : 0;
 
 	// validate inputs
@@ -20,25 +20,25 @@ function forgotpassword() {
 		return $a;
 	}
 
-	// get database connection
+	// get db connection
 	$conn = getConnection();
 	if (!$conn) {
 		return $a;
 	}
 
-	// read user
+	// get requesting user
 	$result = getUserByBoth($conn, $both);
 	if (!$result) {
 		return $a;
 	}
 
-	// get data fields
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-	$id = $row['id'];
-	$access = $row['access'];
+	$userid = $row['id'];
+	$uname = $row['username'];
 	$auth = $row['auth'];
+	$access = $row['access'];
 	$email = $row['email'];
-	$username = $row['username'];
 
 	// get TIC
 	$publicTic = generateTic();
@@ -51,18 +51,20 @@ function forgotpassword() {
 		return $a;
 	}
 
-	// update auth and hashtic in user record
+	// set new auth
+	$auth = DB::$auth_resetpending;
+
+	// update user record
 	$name = 'change-user-auth';
 	$sql = "update account.user set auth = $1, hashtic=$3 where id = $2";
-	$auth = DB::$auth_resetpending;
-	$params = array($auth, $id, $hashTic);
+	$params = array($auth, $userid, $hashTic);
 	$result = execSql($conn, $name, $sql, $params, true);
 	if (!$result) {
 		return $a;
 	}
 
 	// write a new session id token
-	$si = writeToken($conn, $id);
+	$si = writeToken($conn, $userid);
 	if (!$si) {
 		return $a;
 	}
@@ -72,7 +74,7 @@ function forgotpassword() {
 	$a['si'] = $si;
 	$a['auth'] = $auth;
 	$a['access'] = $access;
-	$a['uname'] = $username;
+	$a['uname'] = $uname;
 	return $a;
 }
 ?>

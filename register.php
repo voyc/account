@@ -1,5 +1,5 @@
 <?php
-/*
+/**
 	svc register
 	Register a new user.
 */
@@ -8,7 +8,7 @@ function register() {
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_uname = isset($_POST['uname']) ? $_POST['uname'] : 0;
 	$taint_email = isset($_POST['email']) ? $_POST['email'] : 0;
 	$taint_pword = isset($_POST['pword']) ? $_POST['pword'] : 0;
@@ -18,11 +18,13 @@ function register() {
 	$email = validateEmail($taint_email);
 	$pword = validatePword($taint_pword);
 
+	// validate parameter set
 	if (!$email || !$uname || !$pword) {
 		Log::write(LOG_WARNING, "attempt with invalid parameter set");
 		return $a;
 	}
 
+	// get db connection
 	$conn = getConnection();
 	if (!$conn) {
 		return $a;
@@ -36,7 +38,6 @@ function register() {
 	if (!$result) {
 		return $a;
 	}
-
 	$numrows = pg_num_rows($result);
 	if ($numrows > 0) {
 		Log::write(LOG_NOTICE, "$name: username already on file");
@@ -52,7 +53,6 @@ function register() {
 	if (!$result) {
 		return $a;
 	}
-
 	$numrows = pg_num_rows($result);
 	if ($numrows > 0) {
 		Log::write(LOG_NOTICE, "$name: email already on file");
@@ -68,19 +68,26 @@ function register() {
 	if (!$result) {
 		return $a;
 	}
-
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
 	$id = $row['nextval'];
 
 	// hash the password
 	$hashPassword = hashPassword($pword);
 
+	// set new auth
 	$auth = DB::$auth_registered;
 	$access = DB::$access_novice;
 
 	// get TIC
 	$publicTic = generateTic();
 	$hashTic = hashTic($publicTic);
+
+	// send TIC to user by email
+	$boo = sendAuthenticationEmail($email, $publicTic, 'verify');
+	if (!$boo) {
+		$a['status'] = 'send-email-failed';
+		return $a;
+	}
 
 	// write a session token
 	$si = writeToken($conn, $id);
@@ -97,20 +104,12 @@ function register() {
 		return $a;
 	}
 
-	// send TIC to user by email
-	$boo = sendAuthenticationEmail($email, $publicTic, 'verify');
-	if (!$boo) {
-		$a['status'] = 'send-email-failed';
-		return $a;
-	}
-
 	// success
 	$a['status'] = 'ok';
 	$a['si'] = $si;
 	$a['auth'] = $auth;
 	$a['access'] = $access;
 	$a['uname'] = $uname;
-	//$a['email'] = obscureEmail($email);
 	return $a;
 }
 ?>

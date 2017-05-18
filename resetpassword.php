@@ -1,5 +1,5 @@
 <?php
-/*
+/**
 	svc resetpassword
 	Reset password.
 */
@@ -8,7 +8,7 @@ function resetpassword() {
 		'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 	$taint_tic = isset($_POST['tic']) ? $_POST['tic'] : 0;
 	$taint_pnew = isset($_POST['pnew']) ? $_POST['pnew'] : 0;
@@ -24,33 +24,32 @@ function resetpassword() {
 		return $a;
 	}
 
-	// get database connection
+	// get db connection
 	$conn = getConnection();
 	if (!$conn) {
 		return $a;
 	}
 
-	// read user and token table
+	// get logged-in user
 	$result = getUserByToken($conn, $si);
 	if (!$result) {
 		return $a;
 	}
 
-	// get data fields
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-	$id = $row['id'];
+	$userid = $row['id'];
 	$hashtic = $row['hashtic'];
 	$auth = $row['auth'];
-	$uname = $row['username'];
 
-	// verify user
-	if (isUserVerified($auth)) {
-		Log::write(LOG_NOTICE, 'attempt on already-verified user');
+	// verify auth
+	if (!isUserResetPending($auth)) {
+		Log::write(LOG_NOTICE, 'attempt by non-reset-pending user');
 		$a['status'] = 'reset-fail';
 		return $a;
 	}
 
-	// verify the tic from the email
+	// verify tic
 	$boo = verifyTic($tic, $hashtic);
 	if (!$boo) {
 		Log::write(LOG_NOTICE, 'attempt with invalid tic');
@@ -61,11 +60,13 @@ function resetpassword() {
 	// hash the new password
 	$hashpnew = hashPassword($pnew);
 
-	// store the new hashed password and set user to verified
+	// set new auth
+	$auth = DB::$auth_verified;
+
+	// update user record
 	$name = 'reset-password-update';
 	$sql = "update account.user set auth = $1, hashpassword = $3 where id = $2";
-	$auth = DB::$auth_verified;
-	$params = array($auth, $id, $hashpnew);
+	$params = array($auth, $userid, $hashpnew);
 	$result = execSql($conn, $name, $sql, $params, true);
 	if (!$result) {
 		return $a;

@@ -1,13 +1,17 @@
 <?php
+/**
+	svc logout
+	Logout user.
+*/
 function logout() {
 	$a = array(
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 
-	// validated inputs
+	// validate inputs
 	$si = validateToken($taint_si);
 
 	// validate parameter set
@@ -16,16 +20,19 @@ function logout() {
 		return $a;
 	}
 
+	// get db connection
 	$conn = getConnection();
 	if (!$conn) {
 		return $a;
 	}
 
+	// invalidate user session-id
 	$boo = expireToken($conn, $si);
 	if (!$boo) {
 		return $a;
 	}
 
+	// success
 	$a['status'] = 'ok';
 	return $a;
 }

@@ -1,10 +1,14 @@
 <?php
+/**
+	svc changeusername
+	Change username.
+*/
 function changeusername() {
 	$a = array(
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 	$taint_pword = isset($_POST['pword']) ? $_POST['pword'] : 0;
 	$taint_uname = isset($_POST['uname']) ? $_POST['uname'] : 0;
@@ -32,20 +36,20 @@ function changeusername() {
 		return $a;
 	}
 
-	// get data fields
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
-	$id = $row['id'];
-	$dbpw = $row['hashpassword'];
+	$userid = $row['id'];
+	$hashpassword = $row['hashpassword'];
 	$auth = $row['auth'];
 
-	// verify good user
+	// verify auth
 	if (!isUserVerified($auth)) {
 		Log::write(LOG_NOTICE, "attempt by non-verified user");
 		return $a;
 	}
 
 	// verify password
-	$boo = verifyPassword($pword, $dbpw);
+	$boo = verifyPassword($pword, $hashpassword);
 	if (!$boo) {
 		Log::write(LOG_NOTICE, "attempt with bad password");
 		return $a;
@@ -54,7 +58,7 @@ function changeusername() {
 	// validate username is unique
 	$name = 'test-unique-username';
 	$sql  = "select id from account.user where username = $1 and id <> $2";
-	$params = array($uname, $id);
+	$params = array($uname, $userid);
 	$result = execSql($conn, $name, $sql, $params, false);
 	if (!$result) {
 		return $a;
@@ -69,7 +73,7 @@ function changeusername() {
 	// update the user record
 	$name = 'change-user-username';
 	$sql  = "update account.user set username = $1 where id = $2";
-	$params = array($uname, $id);
+	$params = array($uname, $userid);
 	$result = execSql($conn, $name, $sql, $params, true);
 	if (!$result) {
 		return $a;

@@ -1,6 +1,6 @@
 <?php
-/*
-	svc verifyemail`
+/**
+	svc verifyemail
 	Verify a newly changed email.
 */
 function verifyemail() {
@@ -8,7 +8,7 @@ function verifyemail() {
 	    'status' => 'system-error'
 	);
 
-	// raw inputs
+	// get raw inputs
 	$taint_si = isset($_POST['si']) ? $_POST['si'] : 0;
 	$taint_tic = isset($_POST['tic']) ? $_POST['tic'] : 0;
 	$taint_pword = isset($_POST['pword']) ? $_POST['pword'] : 0;
@@ -30,41 +30,44 @@ function verifyemail() {
 		return $a;
 	}
 
-	// read token and user table
+	// get logged-in user
 	$result = getUserByToken($conn, $si);
 	if (!$result) {
 		return $a;
 	}
-
-	// get fields
+	
+	// get user data
 	$row = pg_fetch_array($result, 0, PGSQL_ASSOC);
 	$userid = $row['id'];
 	$hashpassword = $row['hashpassword'];
 	$auth = $row['auth'];
 	$hashtic = $row['hashtic'];
 
-	// check user
+	// verify auth
 	if (!isUserEmailPending($auth)) {
 	 	Log::write(LOG_NOTICE, 'user is not email-pending');
 		return $a;
 	}
 
-	// verify the password
+	// verify password
 	$boo = verifyPassword($pword, $hashpassword);
 	if (!$boo) {
 		Log::write(LOG_NOTICE, 'attempt with invalid password');
 		return $a;
 	}
 
-	// verify the tic from the email
+	// verify tic
 	$boo = verifyTic($tic, $hashtic);
 	if (!$boo) {
 		Log::write(LOG_NOTICE, 'attempt with invalid tic');
+		$a['status'] = 'invalid-tic';
 		return $a;
 	}
 
-	// update user record
+	// set new auth
 	$auth = DB::$auth_verified;
+
+	// update user record
 	$name = 'verify-email';
 	$sql = "update account.user set email=newemail, newemail='', auth=$1, hashtic=null, tmhashtic=null where id = $2";
 	$params = array($auth, $userid);

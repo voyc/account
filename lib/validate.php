@@ -85,6 +85,9 @@ function isUserEmailPending($auth) {
 	return ($auth == DB::$auth_emailpending);
 }
 function isUserVerified($auth) {
+	return ($auth == DB::$auth_verified);
+}
+function wasUserVerified($auth) {
 	return ($auth >= DB::$auth_verified);
 }
 ?>
