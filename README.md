@@ -1,4 +1,4 @@
-# accounts
+# account
 User Authentication
 
 A library of AJAX services for user management:
@@ -15,9 +15,9 @@ A library of AJAX services for user management:
   * changeemail
   * verifyemail
 
-A git submodule.
-Written in PHP and Postgres.
-The html/index.html file provided is a demo and test UI intended only for developers.
+A git submodule.<br/>
+Written in PHP and Postgres.<br/>
+Includes a demo/test UI for developers.<br/>
 See the Model project for an example of how this submodule is included in a complete UI framework.
 
 ## Design Principles
@@ -101,5 +101,7 @@ Security,
 Privacy,
 User Authentication,
 Code Hiding,
-ID Theft
+ID Theft,
+PHP,
+AJAX
 
