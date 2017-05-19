@@ -2,7 +2,12 @@
 /**
 	user authentication svc entry point
 **/
-require_once(dirname(__FILE__).'/../config.php');
+if (file_exists(dirname(__FILE__).'/../config.php')) {
+	require_once(dirname(__FILE__).'/../config.php');  // native
+}
+else {
+	require_once(dirname(__FILE__).'/../../../config.php');  // super
+}
 require_once('lib/str.php');
 require_once('lib/db.php');
 require_once('lib/validate.php');
