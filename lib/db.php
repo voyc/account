@@ -25,7 +25,6 @@ function execSql($conn, $name, $sql, $params, $test1) {
 		$result = @pg_prepare($conn, $name, $sql);
 		if (!$result) {
 			Log::write(LOG_ERR, "$name prepare error: ".pg_last_error($conn));
-			Log::write(LOG_ERR, "uid = $uid");
 			Log::write(LOG_ERR, "sql = $sql");
 			return false;
 		}
