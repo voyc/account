@@ -14,8 +14,7 @@ require_once('lib/validate.php');
 require_once('lib/crypto.php');
 require_once('lib/cors.php');
 require_once('lib/log.php');
-
-writeHeader();
+writeHeader(); // no blank lines before this
 
 /* 
 	this function is not yet implemented or tested
