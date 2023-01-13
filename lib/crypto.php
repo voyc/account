@@ -4,24 +4,35 @@
 	crypto functions
 		these tend to evolve over time as cops and robbers devise new tricks
 		for now, we are using built-in PHP functions
+		18Sep2022 switched from mcrypt to openssl
 **/
 
 // 1. generate a unique key for use as session-id or remember-me token
 function generateToken() {  // returns a hash string length 64
-	// older version from php-login-advanced, returns a hash string length 32
-	//$tk = sha1(uniqid(mt_rand(), true));
 	global $ua_token_seed;
-	$tk = hash('sha256', Config::$ua_tokenseed.mt_rand());
-	return $tk;
+	$token = hash('sha256', Config::$ua_tokenseed.mt_rand());
+	return $token;
 }
 function encryptToken($token) {
-	$cipherToken = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, Config::$ua_secretkey, $token, MCRYPT_MODE_ECB);
+	$cipherToken = openssl_encrypt(
+		$token,		        // the string to be encrypted
+		'AES-256-CBC',		// cipher method
+		Config::$ua_secretkey,	// passphrase
+		0,			// options
+		Config::$ua_initvector 	// initialization vector (iv)
+	);
 	$publicToken = base64_encode($cipherToken);
 	return $publicToken;
 }
 function decryptToken($publicToken) {
 	$cipherToken = base64_decode($publicToken);
-	$token = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, Config::$ua_secretkey, $cipherToken, MCRYPT_MODE_ECB);
+	$token = openssl_decrypt(
+		$cipherToken,		// the string to be decrypted
+		'AES-256-CBC',		// cipher method
+		Config::$ua_secretkey,	// passphrase
+		0,			// options
+		Config::$ua_initvector	// initialization vector (iv)
+	);
 	return $token;
 }
 

@@ -115,8 +115,8 @@ function sendAuthenticationEmail($email, $code, $svc) {
 	$to = $email;
 	$subject = Str::get("$svc-subject", array(Config::$appname));
 	$message = Str::get("$svc-message", array(Config::$appname, Config::$appnameLong, $code));
-	$additional_headers = null; //"From: ".Config::$email_from."\r\n";
-	$additional_parameters = null;
+        $additional_headers = "From: " . Config::$email_from . "\r\n" . "Content-Type: text/plain; charset=utf-8";
+        $additional_parameters = "-f" . Config::$email_from;
 
 	$boo = mail( $to, $subject, $message, $additional_headers, $additional_parameters);
 	if (!$boo) {
